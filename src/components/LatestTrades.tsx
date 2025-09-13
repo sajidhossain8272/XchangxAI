@@ -429,6 +429,7 @@ export default function LatestTradesTable() {
         </div>
       </div>
 
+
       {/* (dev tip) trigger new trade from console:
       window.dispatchEvent(new CustomEvent("trade:placed", { detail: {id:'tX', send:'paypal', recv:'bkash', amount:12, ccy:'USD', username:'USER', createdAt:Date.now(), status:'Pending'} }))
       */}
