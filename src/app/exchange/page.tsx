@@ -439,13 +439,17 @@ export default function ExchangePage() {
   const src: MethodId = (isMethod(from) ? from : "bkash") as MethodId;
   const dst: MethodId = (isMethod(to) ? to : "paypal") as MethodId;
 
-  const [tradeId] = useState<string>(() => {
-    const existing = sessionStorage.getItem("current-trade-id");
+const [tradeId] = useState<string>(() => {
+  if (typeof window !== 'undefined') {
+    const existing = window.sessionStorage.getItem('current-trade-id');
     if (existing) return existing;
     const id = `XCX-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
-    sessionStorage.setItem("current-trade-id", id);
+    window.sessionStorage.setItem('current-trade-id', id);
     return id;
-  });
+  }
+  // Fallback while rendering on the server
+  return `XCX-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
+});
 
   const [status, setStatus] = useState<TradeStatus>("Started");
   const [destSaved, setDestSaved] = useState<any>(null);
