@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+
 import React, { useEffect, useMemo, useState } from "react";
 
 /** ---- Types ---- */
@@ -12,8 +13,10 @@ type MethodId =
   | "bkash"
   | "nagad"
   | "bank";
+
 type Fiat = "USD" | "EUR" | "BDT";
 type TradeStatus = "Pending" | "Completed" | "Refunded";
+
 type Trade = {
   id: string;
   send: MethodId;
@@ -49,25 +52,33 @@ const PLATFORM_CCY: Record<MethodId, Fiat> = {
 
 /** ---- Utils ---- */
 const meta = (id: MethodId) => METHODS.find((m) => m.id === id)!;
+
 const fmtAmt = (n: number) =>
   new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(n);
-const fmtDT = (ts: number) => {
-  const d = new Date(ts);
-  return `${d.toLocaleDateString("en-GB")} ${d.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}`;
-};
-const relTime = (ts: number) => {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-};
+
+// Use a fixed TZ/locale so the tooltip is identical on server & client
+const dtf = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Dhaka",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const fmtDT = (ts: number) => dtf.format(new Date(ts));
+
+// relative time driven by a provided "now" (so we avoid SSR/CSR mismatch)
+function relTime(now: number, ts: number) {
+  const diff = Math.max(0, now - ts);
+  const s = Math.floor(diff / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  if (d > 0) return `${d}d ago`;
+  if (h > 0) return `${h}h ago`;
+  if (m > 0) return `${m}m ago`;
+  return `${s}s ago`;
+}
 
 /** Normalize legacy / mixed statuses to your canonical set */
 const normalizeStatus = (s: string): TradeStatus => {
@@ -87,44 +98,47 @@ const statusChip = (raw: TradeStatus | string) => {
     : "bg-slate-200 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"; // Refunded
 };
 
-/** ---- Seed (static) ---- */
+/** ---- Seed (static) ----
+ * The type error you saw was because TS widened literals to `string`.
+ * We fix that by explicitly typing each literal to the union types.
+ */
 const SEED: Trade[] = [
   {
     id: "t1",
-    send: "usdt",
-    recv: "nagad",
+    send: "usdt" as MethodId,
+    recv: "nagad" as MethodId,
     amount: 10.55,
-    ccy: "USD",
+    ccy: "USD" as Fiat,
     username: "SAYONBISWAS100",
     createdAt: Date.now() - 1000 * 60 * 60 * 1,
     status: "Completed",
   },
   {
     id: "t2",
-    send: "wise",
-    recv: "paypal",
+    send: "wise" as MethodId,
+    recv: "paypal" as MethodId,
     amount: 10,
-    ccy: "USD",
+    ccy: "USD" as Fiat,
     username: "MEHRAB",
     createdAt: Date.now() - 1000 * 60 * 45,
     status: "Completed",
   },
   {
     id: "t3",
-    send: "nagad",
-    recv: "paypal",
+    send: "nagad" as MethodId,
+    recv: "paypal" as MethodId,
     amount: 826,
-    ccy: "BDT",
+    ccy: "BDT" as Fiat,
     username: "Ahnaf",
     createdAt: Date.now() - 1000 * 60 * 30,
     status: "Completed",
   },
   {
     id: "t5",
-    send: "nagad",
-    recv: "skrill",
+    send: "nagad" as MethodId,
+    recv: "skrill" as MethodId,
     amount: 670,
-    ccy: "BDT",
+    ccy: "BDT" as Fiat,
     username: "Bayazid783",
     createdAt: Date.now() - 1000 * 60 * 5,
     status: "Pending",
@@ -161,6 +175,14 @@ function MethodBadge({ id }: { id: MethodId }) {
 export default function LatestTradesTable() {
   const [rows, setRows] = useState<Trade[]>(SEED);
 
+  // client clock for hydration-safe relative times
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   // pagination
   const PAGE_SIZE = 10;
   const [page, setPage] = useState(1);
@@ -187,7 +209,13 @@ export default function LatestTradesTable() {
       const ev = e as CustomEvent<Trade>;
       if (!ev?.detail) return;
       const incoming = ev.detail;
-      const normalized: Trade = { ...incoming, status: normalizeStatus(String(incoming.status)) };
+      const normalized: Trade = {
+        ...incoming,
+        send: incoming.send as MethodId,
+        recv: incoming.recv as MethodId,
+        ccy: incoming.ccy as Fiat,
+        status: normalizeStatus(String(incoming.status)),
+      };
       setRows((r) => [normalized, ...r].slice(0, 500));
       setPage(1); // jump to newest
     };
@@ -195,7 +223,13 @@ export default function LatestTradesTable() {
       if (e.key !== "latest-trade" || !e.newValue) return;
       try {
         const t = JSON.parse(e.newValue) as Trade;
-        const normalized: Trade = { ...t, status: normalizeStatus(String(t.status)) };
+        const normalized: Trade = {
+          ...t,
+          send: t.send as MethodId,
+          recv: t.recv as MethodId,
+          ccy: t.ccy as Fiat,
+          status: normalizeStatus(String(t.status)),
+        };
         setRows((r) => [normalized, ...r].slice(0, 500));
         setPage(1);
       } catch {}
@@ -210,10 +244,6 @@ export default function LatestTradesTable() {
 
   const showingFrom = total === 0 ? 0 : startIdx + 1;
   const showingTo = Math.min(startIdx + currentRows.length, total);
-  const lastUpdated = useMemo(
-    () => (rows[0] ? relTime(rows[0].createdAt) : "—"),
-    [rows]
-  );
 
   return (
     <section className="mx-auto mt-10 w-full max-w-6xl px-4">
@@ -224,7 +254,7 @@ export default function LatestTradesTable() {
             Latest Exchanges
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            <span className="font-medium">Status meanings:</span> Pending = received, not fulfilled • Completed = fulfilled • Refunded = returned & cancelled
+            <span className="font-medium">Status meanings:</span> Pending = received, not fulfilled • Completed = fulfilled • Refunded = returned &amp; cancelled
           </p>
         </div>
 
@@ -233,7 +263,12 @@ export default function LatestTradesTable() {
             <LiveDot />
             Live
           </span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">Updated {lastUpdated}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Updated{" "}
+            <span suppressHydrationWarning>
+              {now && rows[0] ? relTime(now, rows[0].createdAt) : ""}
+            </span>
+          </span>
         </div>
       </div>
 
@@ -243,7 +278,7 @@ export default function LatestTradesTable() {
           Exchanges
         </div>
 
-        {/* Single table (desktop + mobile, horizontal scroll if needed) */}
+        {/* Single table */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] table-fixed text-left text-sm">
             <thead>
@@ -265,10 +300,10 @@ export default function LatestTradesTable() {
                   }`}
                 >
                   <td className="px-4 py-3">
-                    <MethodBadge id={t.send as MethodId} />
+                    <MethodBadge id={t.send} />
                   </td>
                   <td className="px-4 py-3">
-                    <MethodBadge id={t.recv as MethodId} />
+                    <MethodBadge id={t.recv} />
                   </td>
                   <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">
                     {fmtAmt(t.amount)} {t.ccy}
@@ -289,7 +324,9 @@ export default function LatestTradesTable() {
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-300">
-                    <span title={fmtDT(t.createdAt)}>{relTime(t.createdAt)}</span>
+                    <span suppressHydrationWarning title={fmtDT(t.createdAt)}>
+                      {now ? relTime(now, t.createdAt) : ""}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip(t.status)}`}>
@@ -350,7 +387,6 @@ export default function LatestTradesTable() {
               ← Prev
             </button>
 
-            {/* Page numbers (collapse if many) */}
             {Array.from({ length: totalPages }).map((_, i) => {
               const n = i + 1;
               const isEdge = n === 1 || n === totalPages;
@@ -393,8 +429,9 @@ export default function LatestTradesTable() {
         </div>
       </div>
 
-      {/* (dev tip) trigger new trade:
-      window.dispatchEvent(new CustomEvent("trade:placed", { detail: {id:'tX', send:'paypal', recv:'bkash', amount:12, ccy:'USD', username:'USER', createdAt:Date.now(), status:'Pending'} })) */}
+      {/* (dev tip) trigger new trade from console:
+      window.dispatchEvent(new CustomEvent("trade:placed", { detail: {id:'tX', send:'paypal', recv:'bkash', amount:12, ccy:'USD', username:'USER', createdAt:Date.now(), status:'Pending'} }))
+      */}
     </section>
   );
 }
