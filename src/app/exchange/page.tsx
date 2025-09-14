@@ -5,6 +5,7 @@ export const revalidate = 0;
 import { Suspense } from "react";
 import ExchangeClient from "./ExchangeClient";
 
+
 export default function Page() {
   return (
     <Suspense
