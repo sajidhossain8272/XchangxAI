@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import API from "../../apilist";
 
-// --------------------------------------------------
-// Types
-// --------------------------------------------------
+/* =========================
+   Types
+========================= */
 export type MethodId =
   | "paypal"
   | "payoneer"
@@ -24,34 +25,29 @@ export type ReserveItem = {
   amountUSD: number; // canonical in USD
 };
 
-export type ReservesListProps = {
-  items?: ReserveItem[];
-  currency?: Fiat; // default USD
-  usdToBdt?: number; // for BDT display
-  loading?: boolean;
-  error?: string | null;
-  onRefresh?: () => void;
-  className?: string;
-  fetchUrl?: string; // optional: /api/reserves -> { items, usdToBdt }
-  refreshMs?: number; // default 60s
-  limit?: number; // show top N ("+X more" footer)
-  title?: string; // override header title
+export type ReservesApiResponse = {
+  items: ReserveItem[];
+  usdToBdt: number;
 };
 
-// --------------------------------------------------
-// Defaults & helpers
-// --------------------------------------------------
-const DEFAULT: ReserveItem[] = [
-  { id: "paypal", label: "PayPal (USD)", amountUSD: 4200 },
-  { id: "payoneer", label: "Payoneer (USD)", amountUSD: 3650 },
-  { id: "skrill", label: "Skrill (USD)", amountUSD: 2800 },
-  { id: "wise", label: "Wise (USD)", amountUSD: 3100 },
-  { id: "usdt", label: "USDT (TRC20) (USD)", amountUSD: 5000 },
-  { id: "bkash", label: "bKash (BDT)", amountUSD: 1500 },
-  { id: "nagad", label: "Nagad (BDT)", amountUSD: 1300 },
-  { id: "bank", label: "Bank Transfer (BDT)", amountUSD: 4882.75 },
-];
+export type ReservesListProps = {
+  /** Optional: override API URL; defaults to API.url("reserves") */
+  fetchUrl?: string;
+  /** Polling interval in ms (default 60s; set 0 to disable) */
+  refreshMs?: number;
+  /** Initial currency tab */
+  currency?: Fiat; // default USD
+  /** Max rows to show (footer shows +X more) */
+  limit?: number;
+  /** Override header title */
+  title?: string;
+  /** Extra className for wrapper */
+  className?: string;
+};
 
+/* =========================
+   Helpers / UI bits
+========================= */
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -66,7 +62,7 @@ function money(num: number, currency: Fiat) {
 }
 
 const COLOR_MAP: Record<string, string> = {
-  paypal: "#22c55e", // lime-ish brand accent
+  paypal: "#22c55e",
   payoneer: "#f59e0b",
   skrill: "#6d28d9",
   wise: "#0ea5e9",
@@ -80,7 +76,7 @@ function Dot({ id }: { id: string }) {
   const color = COLOR_MAP[id] || "#64748b";
   return (
     <span
-      className='inline-block h-6 w-6 flex-shrink-0 rounded-full ring-1 ring-black/5'
+      className="inline-block h-6 w-6 flex-shrink-0 rounded-full ring-1 ring-black/5"
       style={{ background: color }}
       aria-hidden
     />
@@ -94,7 +90,6 @@ function categoryFrom(it: ReserveItem): string {
   return "BANK";
 }
 
-// Single row aligned with site style
 function Row({
   it,
   currency,
@@ -107,119 +102,127 @@ function Row({
   const display = currency === "USD" ? it.amountUSD : it.amountUSD * usdToBdt;
   const cat = categoryFrom(it);
   return (
-    <li className='group grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-3 hover:bg-gray-50'>
+    <li className="group grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-3 hover:bg-gray-50">
       <Dot id={String(it.id)} />
-      <div className='min-w-0'>
-        <div className='truncate text-[15px] font-medium text-gray-900'>
+      <div className="min-w-0">
+        <div className="truncate text-[15px] font-medium text-gray-900">
           {it.label}
         </div>
-        <div className='text-[10px] font-semibold uppercase tracking-wider text-gray-400'>
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
           {cat}
         </div>
       </div>
-      <div className='text-right text-[15px] font-semibold tabular-nums text-gray-900'>
+      <div className="text-right text-[15px] font-semibold tabular-nums text-gray-900">
         {money(display, currency)}
       </div>
     </li>
   );
 }
 
-// --------------------------------------------------
-// Component (aligned to your hero/card look)
-// --------------------------------------------------
+/* =========================
+   Component
+========================= */
 export default function ReservesList({
-  items,
-  currency = "USD",
-  usdToBdt = 118,
-  loading,
-  error,
-  onRefresh,
-  className,
   fetchUrl,
   refreshMs = 60000,
+  currency = "USD",
   limit,
   title = "Our Reserves",
+  className,
 }: ReservesListProps) {
-  const [internal, setInternal] = useState<ReserveItem[]>(items || DEFAULT);
-  const [fx, setFx] = useState<number>(usdToBdt);
-  const [isLoading, setIsLoading] = useState<boolean>(!!fetchUrl || !!loading);
-  const [err, setErr] = useState<string | null>(error || null);
+  // Default to centralized endpoint
+  const endpoint = fetchUrl || API.url("reserves");
+
+  const [items, setItems] = useState<ReserveItem[]>([]);
+  const [usdToBdt, setUsdToBdt] = useState<number>(118);
   const [ccy, setCcy] = useState<Fiat>(currency);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const tickRef = useRef<number>(0); // manual refresh trigger
 
-  // Optional fetch mode
-  useEffect(() => {
-    if (!fetchUrl) return;
-    let mounted = true;
-    const load = async () => {
-      try {
-        setIsLoading(true);
-        setErr(null);
-        const res = await fetch(fetchUrl, { cache: "no-store" });
-        const json = await res.json();
-        if (!mounted) return;
-        if (Array.isArray(json?.items))
-          setInternal(json.items as ReserveItem[]);
-        if (json?.usdToBdt) setFx(Number(json.usdToBdt));
-      } catch (e: any) {
-        if (!mounted) return;
-        setErr(e?.message || "Failed to load reserves");
-      } finally {
-        if (mounted) setIsLoading(false);
+  const load = async (signal?: AbortSignal) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await fetch(endpoint, { cache: "no-store", signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json: ReservesApiResponse = await res.json();
+      if (!Array.isArray(json?.items))
+        throw new Error("Malformed response: missing items");
+
+      setItems(json.items);
+      if (typeof json.usdToBdt === "number" && json.usdToBdt > 0) {
+        setUsdToBdt(json.usdToBdt);
       }
-    };
-    load();
-    const id = window.setInterval(load, refreshMs);
-    return () => {
-      mounted = false;
-      window.clearInterval(id);
-    };
-  }, [fetchUrl, refreshMs]);
+      setLastUpdated(Date.now());
+    } catch (e: any) {
+      setError(e?.message || "Failed to load reserves");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Initial + polling
   useEffect(() => {
-    if (items) setInternal(items);
-  }, [items]);
-  useEffect(() => setFx(usdToBdt), [usdToBdt]);
-  useEffect(() => setCcy(currency), [currency]);
+    const ac = new AbortController();
+    load(ac.signal);
+    let id: number | undefined;
+    if (refreshMs && refreshMs > 0) {
+      id = window.setInterval(() => load(), refreshMs);
+    }
+    return () => {
+      ac.abort();
+      if (id) window.clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint, refreshMs, tickRef.current]);
 
   const sorted = useMemo(
-    () => [...internal].sort((a, b) => b.amountUSD - a.amountUSD),
-    [internal]
+    () => [...items].sort((a, b) => b.amountUSD - a.amountUSD),
+    [items]
   );
   const visible = useMemo(
     () => (limit ? sorted.slice(0, limit) : sorted),
     [sorted, limit]
   );
-  const hiddenCount = Math.max(0, internal.length - visible.length);
+  const hiddenCount = Math.max(0, items.length - visible.length);
 
   return (
     <aside
       className={cx(
-        // matches your hero card aesthetics
         "rounded-3xl bg-white/70 p-4 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur",
         "ring-1 ring-white/50",
         className
       )}
     >
       {/* Header */}
-      <div className='mb-2 flex items-center justify-between'>
-        <div className='flex items-center gap-2'>
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <button
-            className='inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/60 bg-white/80 text-xs text-gray-600 shadow-sm'
-            aria-label='Menu'
-            title='Menu'
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/60 bg-white/80 text-xs text-gray-600 shadow-sm"
+            aria-label="Menu"
+            title="Menu"
+            type="button"
           >
             ≡
           </button>
-          <h3 className='text-base font-semibold text-gray-900'>{title}</h3>
+          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          {lastUpdated && !isLoading && !error && (
+            <span className="ml-2 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500">
+              Updated {new Date(lastUpdated).toLocaleTimeString()}
+            </span>
+          )}
         </div>
-        <div className='flex items-center gap-2'>
-          <div className='inline-flex rounded-full border border-white/60 bg-white/80 p-0.5 shadow-sm'>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-full border border-white/60 bg-white/80 p-0.5 shadow-sm">
             <button
               className={cx(
                 "rounded-full px-2.5 py-1 text-xs",
                 ccy === "USD" ? "bg-gray-900 text-white" : "text-gray-700"
               )}
               onClick={() => setCcy("USD")}
+              type="button"
             >
               USD
             </button>
@@ -229,13 +232,18 @@ export default function ReservesList({
                 ccy === "BDT" ? "bg-gray-900 text-white" : "text-gray-700"
               )}
               onClick={() => setCcy("BDT")}
+              type="button"
             >
               BDT
             </button>
           </div>
           <button
-            onClick={() => onRefresh?.()}
-            className='rounded-full border border-white/60 bg-white/80 px-3 py-1 text-xs text-gray-700 shadow-sm hover:bg-white'
+            onClick={() => {
+              tickRef.current++;
+              load();
+            }}
+            className="rounded-full border border-white/60 bg-white/80 px-3 py-1 text-xs text-gray-700 shadow-sm hover:bg-white"
+            type="button"
           >
             Refresh
           </button>
@@ -244,34 +252,33 @@ export default function ReservesList({
 
       {/* List */}
       {isLoading ? (
-        <ul className='space-y-2'>
-          {Array.from({ length: 10 }).map((_, i) => (
-            <li
-              key={i}
-              className='h-[52px] animate-pulse rounded-xl bg-gray-100/70'
-            />
+        <ul className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <li key={i} className="h-[52px] animate-pulse rounded-xl bg-gray-100/70" />
           ))}
         </ul>
-      ) : err ? (
-        <div className='rounded-xl bg-amber-50 p-3 text-sm text-amber-800 ring-1 ring-amber-100'>
-          {err}
+      ) : error ? (
+        <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 ring-1 ring-amber-100">
+          {error}{" "}
+          <button
+            className="ml-2 rounded-md bg-amber-600 px-2 py-0.5 text-[11px] text-white"
+            onClick={() => load()}
+            type="button"
+          >
+            Retry
+          </button>
         </div>
       ) : (
-        <ul className='divide-y divide-gray-100/80'>
+        <ul className="divide-y divide-gray-100/80">
           {visible.map((it) => (
-            <Row
-              key={`${it.id}-${it.label}`}
-              it={it}
-              currency={ccy}
-              usdToBdt={fx}
-            />
+            <Row key={`${it.id}-${it.label}`} it={it} currency={ccy} usdToBdt={usdToBdt} />
           ))}
         </ul>
       )}
 
       {/* Footer */}
-      <div className='mt-2 flex items-center justify-between text-[11px] text-gray-500'>
-        <span>FX {fx.toFixed(2)} BDT / USD</span>
+      <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500">
+        <span>FX {usdToBdt.toFixed(2)} BDT / USD</span>
         {hiddenCount > 0 && <span>+{hiddenCount} more</span>}
       </div>
     </aside>
