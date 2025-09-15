@@ -1,27 +1,43 @@
+// components/admin/RequireAdmin.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import API from "@/../apilist";
 
-export default function RequireAdmin({ children }: { children: React.ReactNode }) {
+export default function RequireAdmin({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
-  const [checked, setChecked] = useState(false);
-  const [ok, setOk] = useState(false);
+  const pathname = usePathname();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const res = await fetch(API.ADMIN_ME, { credentials: "include" });
-        const json = await res.json();
-        setOk(Boolean(json?.ok));
-        if (!json?.ok) router.replace("/admin/login");
+        const ok = res.ok ? (await res.json())?.ok : false;
+        if (!ok && !cancelled) {
+          router.replace("/admin/login?next=" + encodeURIComponent(pathname));
+          return;
+        }
+      } catch {
+        if (!cancelled) {
+          router.replace("/admin/login?next=" + encodeURIComponent(pathname));
+          return;
+        }
       } finally {
-        setChecked(true);
+        if (!cancelled) setChecking(false);
       }
     })();
-  }, [router]);
+    return () => {
+      cancelled = true;
+    };
+  }, [router, pathname]);
 
-  if (!checked) return <div className="p-6">Checking session…</div>;
-  return ok ? <>{children}</> : null;
+  if (checking) return <div className="p-6">Checking session…</div>;
+  return <>{children}</>;
 }

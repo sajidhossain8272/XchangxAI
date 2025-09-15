@@ -1,36 +1,50 @@
+// components/admin/AdminSidebar.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import API from "@/../apilist";
 
-const items = [
+const links = [
   { href: "/admin/reserve", label: "Reserves" },
-  { href: "/admin/settings", label: "Settings (stub)" },
-  { href: "/admin/trades", label: "Trades (stub)" },
+  { href: "/admin/faq", label: "FAQs" }, 
+  { href: "/admin/settings", label: "Settings (coming soon)" },
+  { href: "/admin/trades", label: "Trades (coming soon)" },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+
+  async function logout() {
+    await fetch(API.ADMIN_LOGOUT, { method: "POST", credentials: "include" });
+    window.location.href = "/admin/login";
+  }
+
   return (
-    <aside className="w-full max-w-[220px] shrink-0 rounded-xl border bg-white p-3">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">Admin</h3>
+    <aside className="w-60 shrink-0 rounded-xl border bg-white p-4">
+      <div className="mb-4 text-lg font-semibold">XchangXAI Admin</div>
       <nav className="space-y-1">
-        {items.map((it) => {
-          const active = pathname.startsWith(it.href);
+        {links.map((l) => {
+          const active = pathname === l.href;
           return (
             <Link
-              key={it.href}
-              href={it.href}
+              key={l.href}
+              href={l.href}
               className={`block rounded-md px-3 py-2 text-sm ${
-                active ? "bg-gray-900 text-white" : "hover:bg-gray-100"
+                active ? "bg-gray-900 text-white" : "hover:bg-gray-50"
               }`}
             >
-              {it.label}
+              {l.label}
             </Link>
           );
         })}
       </nav>
+      <button
+        onClick={logout}
+        className="mt-6 w-full rounded-md border px-3 py-2 text-sm"
+      >
+        Logout
+      </button>
     </aside>
   );
 }

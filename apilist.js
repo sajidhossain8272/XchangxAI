@@ -11,6 +11,7 @@ const paths = {
   reserves: "/api/reserves",
   settings: "/api/settings",
   settingsFx: "/api/settings/fx",
+  faqs: "/api/faqs",
 
   // trades (placeholders; wire when backend ready)
   trades: "/api/trades",
@@ -24,6 +25,9 @@ const paths = {
   adminMe: "/api/admin/me",
   adminReserves: "/api/admin/reserves", // GET list
   adminReservesUpsert: "/api/admin/reserves", // POST upsert (same route)
+  adminFaqs: "/api/admin/faqs", // <-- ADD
+  adminFaqUpsert: "/api/admin/faqs/upsert", // <-- ADD
+  adminFaqDelete: (id) => `/api/admin/faqs/${id}`, // <-- ADD
   // optional future:
   adminSettings: "/api/admin/settings",
 };
@@ -40,11 +44,15 @@ const ADMIN_LOGOUT = url("adminLogout");
 const ADMIN_ME = url("adminMe");
 const ADMIN_RESERVES = url("adminReserves");
 const ADMIN_RESERVES_UPSERT = url("adminReservesUpsert");
+const ADMIN_FAQS = url("adminFaqs"); // <-- ADD
+const ADMIN_FAQ_UPSERT = url("adminFaqUpsert"); // <-- ADD
+const ADMIN_FAQ_DELETE = (id) => url("adminFaqDelete", id); // <-- ADD
 
 const HEALTH = url("health");
 const RESERVES = url("reserves");
 const SETTINGS = url("settings");
 const SETTINGS_FX = url("settingsFx");
+const FAQS = url("faqs");
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default {
@@ -58,10 +66,14 @@ export default {
   ADMIN_ME,
   ADMIN_RESERVES,
   ADMIN_RESERVES_UPSERT,
+  FAQS,
 
   // Public absolute endpoints
   HEALTH,
   RESERVES,
   SETTINGS,
   SETTINGS_FX,
+  ADMIN_FAQS,
+  ADMIN_FAQ_UPSERT,
+  ADMIN_FAQ_DELETE,
 };

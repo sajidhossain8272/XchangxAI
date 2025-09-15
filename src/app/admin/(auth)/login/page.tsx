@@ -1,8 +1,9 @@
+// app/admin/(auth)/login/page.tsx
 "use client";
 
 import { useState } from "react";
-import API from "@/../apilist";
 import { useRouter } from "next/navigation";
+import API from "@/../apilist";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -18,13 +19,14 @@ export default function AdminLoginPage() {
     try {
       const res = await fetch(API.ADMIN_LOGIN, {
         method: "POST",
-        credentials: "include", // http-only cookie
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Login failed");
-      router.push("/admin/reserve");
+      // go to protected area
+      router.replace("/admin/reserve");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setErr(e?.message || "Login failed");
@@ -34,13 +36,14 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md p-6">
+    <main>
       <h1 className="mb-4 text-2xl font-bold">Admin Login</h1>
       <form onSubmit={submit} className="space-y-3">
         <input
           className="w-full rounded-md border px-3 py-2"
           placeholder="Email"
           type="email"
+          autoComplete="username"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -49,6 +52,7 @@ export default function AdminLoginPage() {
           className="w-full rounded-md border px-3 py-2"
           placeholder="Password"
           type="password"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
