@@ -12,6 +12,7 @@ const paths = {
   settings: "/api/settings",
   settingsFx: "/api/settings/fx",
   faqs: "/api/faqs",
+  reviews: "/api/reviews",
 
   // trades (placeholders; wire when backend ready)
   trades: "/api/trades",
@@ -28,6 +29,10 @@ const paths = {
   adminFaqs: "/api/admin/faqs", // <-- ADD
   adminFaqUpsert: "/api/admin/faqs/upsert", // <-- ADD
   adminFaqDelete: (id) => `/api/admin/faqs/${id}`, // <-- ADD
+  adminReviews: "/api/admin/reviews", // GET list
+  adminReviewUpsert: "/api/admin/reviews/upsert",
+  adminReviewDelete: (id) => `/api/admin/reviews/${id}`,
+  adminReviewPublish: (id) => `/api/admin/reviews/${id}/publish`,
   // optional future:
   adminSettings: "/api/admin/settings",
 };
@@ -47,12 +52,16 @@ const ADMIN_RESERVES_UPSERT = url("adminReservesUpsert");
 const ADMIN_FAQS = url("adminFaqs"); // <-- ADD
 const ADMIN_FAQ_UPSERT = url("adminFaqUpsert"); // <-- ADD
 const ADMIN_FAQ_DELETE = (id) => url("adminFaqDelete", id); // <-- ADD
-
+const ADMIN_REVIEWS = url("adminReviews");
+const ADMIN_REVIEW_UPSERT = url("adminReviewUpsert");
+const ADMIN_REVIEW_DELETE = (id) => url("adminReviewDelete", id);
+const ADMIN_REVIEW_PUBLISH = (id) => url("adminReviewPublish", id);
 const HEALTH = url("health");
 const RESERVES = url("reserves");
 const SETTINGS = url("settings");
 const SETTINGS_FX = url("settingsFx");
 const FAQS = url("faqs");
+const REVIEWS = url("reviews");
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default {
@@ -67,6 +76,7 @@ export default {
   ADMIN_RESERVES,
   ADMIN_RESERVES_UPSERT,
   FAQS,
+  REVIEWS,
 
   // Public absolute endpoints
   HEALTH,
@@ -76,4 +86,8 @@ export default {
   ADMIN_FAQS,
   ADMIN_FAQ_UPSERT,
   ADMIN_FAQ_DELETE,
+  ADMIN_REVIEWS,
+  ADMIN_REVIEW_UPSERT,
+  ADMIN_REVIEW_DELETE,
+  ADMIN_REVIEW_PUBLISH,
 };

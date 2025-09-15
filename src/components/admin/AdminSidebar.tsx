@@ -10,6 +10,7 @@ const links = [
   { href: "/admin/faq", label: "FAQs" }, 
   { href: "/admin/settings", label: "Settings (coming soon)" },
   { href: "/admin/trades", label: "Trades (coming soon)" },
+  { href: "/admin/reviews", label: "Reviews" },
 ];
 
 export default function AdminSidebar() {
