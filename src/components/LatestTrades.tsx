@@ -83,8 +83,15 @@ function relTime(now: number, ts: number) {
 /** Normalize legacy / mixed statuses to your canonical set */
 const normalizeStatus = (s: string): TradeStatus => {
   const v = (s || "").toLowerCase();
-  if (v === "accepted" || v === "complete" || v === "completed") return "Completed";
-  if (v === "rejected" || v === "refund" || v === "refunded" || v === "cancelled" || v === "canceled")
+  if (v === "accepted" || v === "complete" || v === "completed")
+    return "Completed";
+  if (
+    v === "rejected" ||
+    v === "refund" ||
+    v === "refunded" ||
+    v === "cancelled" ||
+    v === "canceled"
+  )
     return "Refunded";
   return "Pending";
 };
@@ -92,10 +99,10 @@ const normalizeStatus = (s: string): TradeStatus => {
 const statusChip = (raw: TradeStatus | string) => {
   const s = normalizeStatus(String(raw));
   return s === "Completed"
-    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+    ? "bg-emerald-100 text-emerald-700 "
     : s === "Pending"
-    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-    : "bg-slate-200 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"; // Refunded
+    ? "bg-amber-100 text-amber-700 "
+    : "bg-slate-200 text-slate-700 "; // Refunded
 };
 
 /** ---- Seed (static) ----
@@ -145,26 +152,27 @@ const SEED: Trade[] = [
   },
 ].filter(
   (t) =>
-    METHODS.some((m) => m.id === t.send) &&
-    METHODS.some((m) => m.id === t.recv)
+    METHODS.some((m) => m.id === t.send) && METHODS.some((m) => m.id === t.recv)
 );
 
 /** ---- Tiny UI bits ---- */
 function LiveDot({ className = "" }: { className?: string }) {
   return (
-    <span className={`relative inline-flex h-2 w-2 items-center justify-center ${className}`}>
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-500 opacity-60" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-lime-600" />
+    <span
+      className={`relative inline-flex h-2 w-2 items-center justify-center ${className}`}
+    >
+      <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-500 opacity-60' />
+      <span className='relative inline-flex h-2 w-2 rounded-full bg-lime-600' />
     </span>
   );
 }
 function MethodBadge({ id }: { id: MethodId }) {
   const m = meta(id);
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-gray-200">
-      <span className="text-base leading-none">{m.icon}</span>
+    <span className='inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-sm  '>
+      <span className='text-base leading-none'>{m.icon}</span>
       {m.label}
-      <span className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-white/10 dark:text-gray-300">
+      <span className='ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600  '>
         {PLATFORM_CCY[id]}
       </span>
     </span>
@@ -246,24 +254,26 @@ export default function LatestTradesTable() {
   const showingTo = Math.min(startIdx + currentRows.length, total);
 
   return (
-    <section className="mx-auto mt-10 w-full max-w-6xl px-4">
+    <section className='mx-auto mt-10 w-full max-w-6xl px-4'>
       {/* Header */}
-      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+      <div className='mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end'>
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+          <h2 className='text-2xl font-extrabold tracking-tight text-gray-900 '>
             Latest Exchanges
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            <span className="font-medium">Status meanings:</span> Pending = received, not fulfilled • Completed = fulfilled • Refunded = returned &amp; cancelled
+          <p className='text-sm text-gray-500 '>
+            <span className='font-medium'>Status meanings:</span> Pending =
+            received, not fulfilled • Completed = fulfilled • Refunded =
+            returned &amp; cancelled
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full bg-lime-100 px-3 py-1 text-xs font-semibold text-lime-700 ring-1 ring-lime-300/60 dark:bg-lime-900/30 dark:text-lime-300 dark:ring-lime-700/40">
+        <div className='flex items-center gap-2'>
+          <span className='inline-flex items-center gap-2 rounded-full bg-lime-100 px-3 py-1 text-xs font-semibold text-lime-700 ring-1 ring-lime-300/60   '>
             <LiveDot />
             Live
           </span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className='text-xs text-gray-500 '>
             Updated{" "}
             <span suppressHydrationWarning>
               {now && rows[0] ? relTime(now, rows[0].createdAt) : ""}
@@ -273,63 +283,71 @@ export default function LatestTradesTable() {
       </div>
 
       {/* Card */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_6px_30px_-12px_rgba(0,0,0,0.25)] dark:border-white/10 dark:bg-black/40">
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white">
+      <div className='overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_6px_30px_-12px_rgba(0,0,0,0.25)]  '>
+        <div className='bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white'>
           Exchanges
         </div>
 
         {/* Single table */}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] table-fixed text-left text-sm">
+        <div className='overflow-x-auto'>
+          <table className='w-full min-w-[860px] table-fixed text-left text-sm'>
             <thead>
-              <tr className="bg-gray-50 text-gray-700 dark:bg-white/5 dark:text-gray-300">
-                <th className="w-[22%] px-4 py-2">Send</th>
-                <th className="w-[22%] px-4 py-2">Receive</th>
-                <th className="w-[14%] px-4 py-2">Amount</th>
-                <th className="w-[18%] px-4 py-2">User</th>
-                <th className="w-[14%] px-4 py-2">Placed</th>
-                <th className="w-[10%] px-4 py-2">Status</th>
+              <tr className='bg-gray-50 text-gray-700  '>
+                <th className='w-[22%] px-4 py-2'>Send</th>
+                <th className='w-[22%] px-4 py-2'>Receive</th>
+                <th className='w-[14%] px-4 py-2'>Amount</th>
+                <th className='w-[18%] px-4 py-2'>User</th>
+                <th className='w-[14%] px-4 py-2'>Placed</th>
+                <th className='w-[10%] px-4 py-2'>Status</th>
               </tr>
             </thead>
             <tbody>
               {currentRows.map((t, i) => (
                 <tr
                   key={t.id}
-                  className={`transition hover:bg-blue-50/50 dark:hover:bg-white/5 ${
-                    i % 2 ? "bg-white dark:bg-transparent" : "bg-gray-50/60 dark:bg-white/0"
+                  className={`transition hover:bg-blue-50/50  ${
+                    i % 2 ? "bg-white " : "bg-gray-50/60 "
                   }`}
                 >
-                  <td className="px-4 py-3">
+                  <td className='px-4 py-3'>
                     <MethodBadge id={t.send} />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className='px-4 py-3'>
                     <MethodBadge id={t.recv} />
                   </td>
-                  <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">
+                  <td className='px-4 py-3 font-semibold text-gray-900 '>
                     {fmtAmt(t.amount)} {t.ccy}
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-tr from-blue-500/20 via-green-400/20 to-yellow-400/20 text-[11px] font-bold text-gray-800 ring-1 ring-black/5 dark:text-gray-100 dark:ring-white/10">
+                  <td className='px-4 py-3'>
+                    <span className='inline-flex items-center gap-2'>
+                      <span className='flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-tr from-blue-500/20 via-green-400/20 to-yellow-400/20 text-[11px] font-bold text-gray-800 ring-1 ring-black/5  '>
                         {t.username.slice(0, 2).toUpperCase()}
                       </span>
                       <button
-                        title="Click to copy"
-                        onClick={() => navigator.clipboard?.writeText(t.username)}
-                        className="group inline-flex items-center gap-1 text-blue-600 hover:underline dark:text-blue-400"
+                        title='Click to copy'
+                        onClick={() =>
+                          navigator.clipboard?.writeText(t.username)
+                        }
+                        className='group inline-flex items-center gap-1 text-blue-600 hover:underline '
                       >
                         {t.username}
-                        <span className="opacity-0 transition group-hover:opacity-100">⧉</span>
+                        <span className='opacity-0 transition group-hover:opacity-100'>
+                          ⧉
+                        </span>
                       </button>
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                  <td className='px-4 py-3 whitespace-nowrap text-gray-600 '>
                     <span suppressHydrationWarning title={fmtDT(t.createdAt)}>
                       {now ? relTime(now, t.createdAt) : ""}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip(t.status)}`}>
+                  <td className='px-4 py-3'>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip(
+                        t.status
+                      )}`}
+                    >
                       {normalizeStatus(String(t.status))}
                     </span>
                   </td>
@@ -341,20 +359,27 @@ export default function LatestTradesTable() {
                 Array.from({ length: paddingRows }).map((_, idx) => (
                   <tr
                     key={`pad-${idx}`}
-                    className={(currentRows.length + idx) % 2 ? "bg-white dark:bg-transparent" : "bg-gray-50/60 dark:bg-white/0"}
+                    className={
+                      (currentRows.length + idx) % 2
+                        ? "bg-white "
+                        : "bg-gray-50/60 "
+                    }
                   >
-                    <td className="px-4 py-3">&nbsp;</td>
-                    <td className="px-4 py-3">&nbsp;</td>
-                    <td className="px-4 py-3">&nbsp;</td>
-                    <td className="px-4 py-3">&nbsp;</td>
-                    <td className="px-4 py-3">&nbsp;</td>
-                    <td className="px-4 py-3">&nbsp;</td>
+                    <td className='px-4 py-3'>&nbsp;</td>
+                    <td className='px-4 py-3'>&nbsp;</td>
+                    <td className='px-4 py-3'>&nbsp;</td>
+                    <td className='px-4 py-3'>&nbsp;</td>
+                    <td className='px-4 py-3'>&nbsp;</td>
+                    <td className='px-4 py-3'>&nbsp;</td>
                   </tr>
                 ))}
 
               {total === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-500 dark:text-gray-400">
+                  <td
+                    colSpan={6}
+                    className='px-4 py-10 text-center text-gray-500 '
+                  >
                     No exchanges yet.
                   </td>
                 </tr>
@@ -364,25 +389,34 @@ export default function LatestTradesTable() {
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-200 px-4 py-3 text-sm text-gray-600 dark:border-white/10 dark:text-gray-300 sm:flex-row">
+        <div className='flex flex-col items-center justify-between gap-3 border-t border-gray-200 px-4 py-3 text-sm text-gray-600  sm:flex-row'>
           <div>
             {total > 0 ? (
               <span>
-                Showing <span className="font-semibold text-gray-900 dark:text-white">{showingFrom}</span>–
-                <span className="font-semibold text-gray-900 dark:text-white">{showingTo}</span> of{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">{total}</span>
+                Showing{" "}
+                <span className='font-semibold text-gray-900 '>
+                  {showingFrom}
+                </span>
+                –
+                <span className='font-semibold text-gray-900 '>
+                  {showingTo}
+                </span>{" "}
+                of{" "}
+                <span className='font-semibold text-gray-900 '>
+                  {total}
+                </span>
               </span>
             ) : (
               <span>Showing 0 of 0</span>
             )}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className='flex items-center gap-1'>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage === 1}
-              className="rounded-md px-3 py-1.5 ring-1 ring-gray-300 disabled:opacity-50 dark:ring-white/10"
-              aria-label="Previous page"
+              className='rounded-md px-3 py-1.5 ring-1 ring-gray-300 disabled:opacity-50 '
+              aria-label='Previous page'
             >
               ← Prev
             </button>
@@ -394,7 +428,7 @@ export default function LatestTradesTable() {
               if (totalPages > 7 && !isEdge && !near) {
                 if (n === 2 || n === totalPages - 1) {
                   return (
-                    <span key={n} className="px-2 text-gray-400">
+                    <span key={n} className='px-2 text-gray-400'>
                       …
                     </span>
                   );
@@ -408,7 +442,7 @@ export default function LatestTradesTable() {
                   className={`rounded-md px-3 py-1.5 ring-1 transition ${
                     n === safePage
                       ? "bg-blue-600 text-white ring-blue-600"
-                      : "ring-gray-300 hover:bg-gray-50 dark:ring-white/10 dark:hover:bg-white/5"
+                      : "ring-gray-300 hover:bg-gray-50 "
                   }`}
                   aria-current={n === safePage ? "page" : undefined}
                 >
@@ -420,16 +454,14 @@ export default function LatestTradesTable() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage === totalPages}
-              className="rounded-md px-3 py-1.5 ring-1 ring-gray-300 disabled:opacity-50 dark:ring-white/10"
-              aria-label="Next page"
+              className='rounded-md px-3 py-1.5 ring-1 ring-gray-300 disabled:opacity-50 '
+              aria-label='Next page'
             >
               Next →
             </button>
           </div>
         </div>
       </div>
-
-
 
       {/* (dev tip) trigger new trade from console:
       window.dispatchEvent(new CustomEvent("trade:placed", { detail: {id:'tX', send:'paypal', recv:'bkash', amount:12, ccy:'USD', username:'USER', createdAt:Date.now(), status:'Pending'} }))

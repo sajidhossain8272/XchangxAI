@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
+import Image from "next/image";
 
 /** --- Types & Data --- */
 type MethodId =
@@ -212,6 +213,29 @@ export default function Hero() {
   /** --- UI --- */
   return (
     <section className='relative overflow-hidden py-20'>
+      {/* Alif Foundation badge (top-left, larger) */}
+      <Link
+        href='#'
+        aria-label='Powered by Alif Foundation'
+        className='group absolute left-3 top-3 z-20 inline-flex items-center gap-3 rounded-xl bg-white/85 px-3 py-2.5 ring-1 ring-black/5 backdrop-blur hover:bg-white md:left-6 md:top-6 md:px-3.5 md:py-3'
+      >
+        <Image
+          src='/Alif-foundation-logo.png'
+          alt='Alif Foundation'
+          width={48}
+          height={48}
+          className='h-10 w-10 md:h-12 md:w-12 object-contain grayscale opacity-90 transition group-hover:grayscale-0 group-hover:opacity-100'
+        />
+        <span className='hidden sm:inline'>
+          <span className='mr-1 align-middle text-xs md:text-sm text-gray-500'>
+            Powered by
+          </span>
+          <span className='align-middle text-sm md:text-base font-semibold tracking-tight text-gray-800 group-hover:text-gray-900 '>
+            Alif Foundation
+          </span>
+        </span>
+      </Link>
+
       {/* Layered lime gradients (no motion) */}
       <div className='pointer-events-none absolute inset-0 bg-[radial-gradient(70%_50%_at_50%_0%,rgba(163,230,53,0.35),rgba(255,255,255,0)_60%)]' />
       <div
