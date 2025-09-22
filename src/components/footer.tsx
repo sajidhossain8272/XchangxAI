@@ -28,19 +28,19 @@ export default function Footer() {
           {/* info links */}
           <nav className='flex flex-wrap items-center justify-center gap-6 text-sm'>
             <Link
-              href='/terms'
+              href='/'
               className='text-gray-600 hover:text-gray-900 '
             >
               Terms & Conditions
             </Link>
             <Link
-              href='/privacy'
+              href='/'
               className='text-gray-600 hover:text-gray-900 '
             >
               Privacy Policy
             </Link>
             <Link
-              href='/contact'
+              href='/support'
               className='text-gray-600 hover:text-gray-900  '
             >
               Contact Us
